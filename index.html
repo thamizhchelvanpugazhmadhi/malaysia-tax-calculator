@@ -1,33 +1,349 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Malaysia Expat Tax Calculator</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Malaysia Expat Tax Calculator | Smart Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #06101f;
+  --surface:   #0c1a30;
+  --surface2:  #112240;
+  --border:    #1c3254;
+  --red:       #cc0001;
+  --red-light: #ff3333;
+  --blue:      #1a56db;
+  --gold:      #f4c430;
+  --green:     #00c48c;
+  --text:      #e2eaf5;
+  --muted:     #7a92af;
+  --danger-bg: #2a0a0a;
+  --success-bg:#062420;
+  --radius:    12px;
+  --font:      'Sora', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--gold);text-decoration:none}
+.container{max-width:760px;margin:0 auto;padding:24px 16px 60px}
+
+/* ── Header ── */
+.header{text-align:center;padding:32px 0 28px;border-bottom:1px solid var(--border); margin-bottom: 24px;}
+.header-flag{font-size:42px;margin-bottom:10px}
+.header h1{font-size:clamp(20px,4vw,28px);font-weight:700;letter-spacing:-0.5px}
+.header h1 span{color:var(--red)}
+.header p{color:var(--muted);font-size:13px;margin-top:6px}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:18px}
+.card-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.card-sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+
+/* ── Residency Display ── */
+.days-display{font-size:64px;font-weight:800;line-height:1;text-align:center;color:var(--gold);margin:12px 0 4px}
+.days-label{text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px}
+.resident-status{margin-top:18px;border-radius:var(--radius);padding:16px 20px;border:1px solid}
+.status-resident{background:var(--success-bg);border-color:#1a5c45;color:var(--green)}
+.status-nonresident{background:var(--danger-bg);border-color:#6a1a1a;color:#ff6b7a}
+.status-row{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700}
+.status-icon{font-size:22px}
+.status-detail{font-size:12px;margin-top:6px;opacity:.85}
+.info-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin:14px 0;font-size:12.5px;color:var(--muted)}
+.info-box strong{color:var(--text)}
+
+/* ── Form Inputs ── */
+.form-group{margin-bottom:16px}
+.form-label{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.input-prefix{display:flex;border:1px solid var(--border);border-radius:8px;background:var(--surface2);overflow:hidden;transition:.2s}
+.input-prefix:focus-within{border-color:var(--blue)}
+.prefix-label{padding:0 12px;background:var(--border);color:var(--muted);font-size:13px;font-weight:600;display:flex;align-items:center;white-space:nowrap}
+.input-prefix input, .input-simple{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--font);font-size:15px;font-weight:600;padding:11px 14px}
+.input-simple{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;transition:.2s}
+.input-simple:focus{border-color:var(--blue)}
+.small-note{font-size:11px;color:var(--muted);margin-top:4px}
+.date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media(max-width:500px){.date-grid{grid-template-columns:1fr}}
+
+/* ── Results ── */
+.result-header{text-align:center;padding:20px 0 16px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.result-status-badge{display:inline-block;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:10px}
+.result-title{font-size:22px;font-weight:800}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}
+.metric-card.highlight{background:var(--surface2);border-color:#1a3a6a}
+.metric-label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}
+.metric-value{font-size:clamp(17px,3.5vw,22px);font-weight:800;color:var(--text)}
+.metric-value.red{color:#ff6b7a}
+.metric-value.green{color:var(--green)}
+.metric-value.gold{color:var(--gold)}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ── Slab Table & PCB ── */
+.slab-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.slab-table th{text-align:left;padding:8px 10px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.8px;border-bottom:1px solid var(--border)}
+.slab-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.05)}
+.slab-table tr.active-row td{background:rgba(26,86,219,.12);color:var(--text);font-weight:600; border-left:3px solid var(--blue)}
+.tax-cell{color:var(--gold);font-weight:700}
+.pcb-bar{background:var(--surface2);border-radius:8px;padding:14px 16px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}
+.pcb-label{font-size:12px;color:var(--muted)}
+.pcb-value{font-size:15px;font-weight:700}
+.refund-box{border-radius:var(--radius);padding:16px 20px;text-align:center;margin-top:12px}
+.refund-box.refund{background:#062420;border:1px solid #1a5c45}
+.refund-box.due{background:var(--danger-bg);border:1px solid #6a1a1a}
+.refund-amount{font-size:28px;font-weight:800;margin:4px 0}
+
+/* ── Disclaimer ── */
+.disclaimer{background:#0f1a0a;border:1px solid #2a4520;border-radius:var(--radius);padding:16px 20px;margin-top:20px;font-size:12px;color:#7a9a6a;line-height:1.7}
+.disclaimer strong{color:#9aba8a;display:block;margin-bottom:6px;font-size:13px}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>Malaysia Expat Tax Calculator</h1>
-        
-        <form id="taxForm">
-            <label for="income">Total Annual Income (RM):</label>
-            <input type="number" id="income" placeholder="e.g. 120000" required>
+<div class="container">
 
-            <label for="days">Days Spent in Malaysia:</label>
-            <input type="number" id="days" placeholder="e.g. 183" required>
+<div class="header">
+  <div class="header-flag">🇲🇾</div>
+  <h1>Malaysia Expat Tax <span>Calculator</span></h1>
+  <p>Smart Calendar Logic &bull; LHDN Official Rates</p>
+</div>
 
-            <button type="button" onclick="calculateTax()">Calculate My Tax</button>
-        </form>
+<div class="card">
+  <div class="card-title">1. Tax Residency Tracker</div>
+  <div class="card-sub">Malaysia uses a <strong>182-day rule</strong> to determine tax residency. Select your dates in Malaysia for the current calendar year.</div>
+  
+  <div class="date-grid">
+      <div class="form-group">
+        <div class="form-label"><span>Arrival Date</span></div>
+        <input type="date" id="arrivalDate" class="input-simple" onchange="calculateApp()">
+      </div>
+      <div class="form-group">
+        <div class="form-label"><span>Departure (or Year End)</span></div>
+        <input type="date" id="departureDate" class="input-simple" onchange="calculateApp()">
+      </div>
+  </div>
 
-        <div id="results" style="display:none; margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
-            </div>
+  <div class="days-display" id="daysDisplay">0</div>
+  <div class="days-label">Total Days in Malaysia</div>
 
-        <p class="disclaimer" style="margin-top: 30px; font-size: 0.8em; color: #666;">
-            Disclaimer: This calculator provides an estimate based on LHDN YA 2024/2025 data. Please consult a qualified tax professional for official advice.
-        </p>
-    </div>
+  <div class="resident-status status-nonresident" id="residencyStatus">
+    <div class="status-row"><span class="status-icon" id="statusIcon">❌</span><span id="statusText">NON-RESIDENT</span></div>
+    <div class="status-detail" id="statusDetail">Enter your dates to determine your residency status.</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">2. Income & Deductions</div>
+  <div class="card-sub">Enter your monthly gross income. We will automatically calculate your annual figures and apply the RM 9,000 personal relief if you qualify as a resident.</div>
+  
+  <div class="form-group">
+    <div class="form-label"><span>Monthly Gross Income (RM)</span></div>
+    <div class="input-prefix"><span class="prefix-label">RM</span><input type="number" id="grossIncome" placeholder="e.g. 12500" min="0" oninput="calculateApp()"></div>
+  </div>
+  
+  <div class="form-group">
+    <div class="form-label"><span>Total Tax Withheld / PCB Paid This Year (Optional)</span></div>
+    <div class="input-prefix"><span class="prefix-label">RM</span><input type="number" id="pcbPaid" placeholder="e.g. 15000" min="0" oninput="calculateApp()"></div>
+    <div class="small-note">Enter your total PCB/MTD paid to see if you are owed a refund. Expats often overpay at 30% before hitting 182 days.</div>
+  </div>
+</div>
+
+<div id="resultsContainer"></div>
+
+</div><script>
+// ═══════════ TAX DATA (LHDN) ═══════════
+const BRACKETS = [
+  {min:0,      max:5000,     rate:0},
+  {min:5000,   max:20000,    rate:0.01},
+  {min:20000,  max:35000,    rate:0.03},
+  {min:35000,  max:50000,    rate:0.08},
+  {min:50000,  max:70000,    rate:0.13},
+  {min:70000,  max:100000,   rate:0.21},
+  {min:100000, max:400000,   rate:0.24},
+  {min:400000, max:600000,   rate:0.245},
+  {min:600000, max:2000000,  rate:0.25},
+  {min:2000000,max:Infinity, rate:0.30}
+];
+
+const BRACKET_LABELS = [
+  "0 – 5,000", "5,001 – 20,000", "20,001 – 35,000", "35,001 – 50,000",
+  "50,001 – 70,000", "70,001 – 100,000", "100,001 – 400,000", 
+  "400,001 – 600,000", "600,001 – 2,000,000", "Above 2,000,000"
+];
+
+let isResident = false;
+let totalDays = 0;
+
+// ═══════════ MAIN LOGIC ═══════════
+function calculateApp() {
+    // 1. Calculate Days
+    const start = document.getElementById('arrivalDate').value;
+    const end = document.getElementById('departureDate').value;
     
-    <script src="script.js"></script>
+    totalDays = 0;
+    if (start && end) {
+        const d1 = new Date(start);
+        const d2 = new Date(end);
+        if (d2 >= d1) {
+            totalDays = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+        }
+    }
+    
+    document.getElementById('daysDisplay').textContent = totalDays;
+    isResident = totalDays >= 182;
+    
+    // Update Status UI
+    const box = document.getElementById('residencyStatus');
+    const icon = document.getElementById('statusIcon');
+    const text = document.getElementById('statusText');
+    const detail = document.getElementById('statusDetail');
+    
+    if (isResident) {
+        box.className = 'resident-status status-resident';
+        icon.textContent = '✅';
+        text.textContent = 'TAX RESIDENT';
+        detail.textContent = 'You passed the 182-day mark! Progressive tax rates and the RM9,000 personal relief now apply.';
+    } else {
+        box.className = 'resident-status status-nonresident';
+        icon.textContent = '❌';
+        text.textContent = 'NON-RESIDENT';
+        detail.textContent = 'Under 182 days. A flat 30% tax rate applies to all income. No personal reliefs.';
+    }
+
+    // 2. Calculate Tax with Monthly Income Logic
+    const monthlyIncome = parseFloat(document.getElementById('grossIncome').value) || 0;
+    const annualIncome = monthlyIncome * 12; // Convert to annual for slab comparison
+    const pcbAnnual = parseFloat(document.getElementById('pcbPaid').value) || 0; 
+    
+    if (monthlyIncome === 0) {
+        document.getElementById('resultsContainer').innerHTML = '';
+        return;
+    }
+
+    // Pass the calculated annualIncome into our rendering functions
+    if (isResident) {
+        renderResident(annualIncome, pcbAnnual);
+    } else {
+        renderNonResident(annualIncome, pcbAnnual);
+    }
+}
+
+function calcProgressiveTax(ci) {
+    let tax = 0; const breakdown = [];
+    for(let i=0; i<BRACKETS.length; i++) {
+        if(ci <= 0) break;
+        const b = BRACKETS[i];
+        if(ci <= b.min) break;
+        const upper = b.max === Infinity ? ci : Math.min(ci, b.max);
+        const band = upper - b.min;
+        const t = band * b.rate;
+        breakdown.push({label: BRACKET_LABELS[i], rate: b.rate, band, tax: t, upper, lower: b.min, active: ci > b.min});
+        tax += t;
+    }
+    return {tax, breakdown};
+}
+
+function renderResident(income, pcb) {
+    const relief = 9000;
+    const chargeable = Math.max(0, income - relief);
+    const {tax, breakdown} = calcProgressiveTax(chargeable);
+    
+    let rebate = chargeable <= 35000 ? 400 : 0;
+    let finalTax = Math.max(0, tax - rebate);
+    let net = income - finalTax;
+    let netMonthly = net / 12;
+    let pcbDiff = pcb - finalTax;
+
+    let html = `
+    <div class="card">
+      <div class="result-header">
+        <div class="result-title">Your Resident Tax Summary</div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card"><div class="metric-label">Annual Gross Income</div><div class="metric-value">${rm(income)}</div><div class="metric-sub">Calculated from Monthly</div></div>
+        <div class="metric-card"><div class="metric-label">Chargeable Income</div><div class="metric-value gold">${rm(chargeable)}</div><div class="metric-sub">After RM9k Relief</div></div>
+        <div class="metric-card highlight"><div class="metric-label">Total Tax Due</div><div class="metric-value red">${rm(finalTax)}</div><div class="metric-sub">Annual Estimate</div></div>
+        <div class="metric-card highlight"><div class="metric-label">Post-Tax Take Home</div><div class="metric-value green">${rm(netMonthly)}</div><div class="metric-sub">Monthly Estimate</div></div>
+      </div>`;
+
+    if (pcb > 0) {
+        let isRefund = pcbDiff >= 0;
+        html += `<div class="refund-box ${isRefund ? 'refund' : 'due'}">
+            <div style="font-weight:bold; font-size:14px;">${isRefund ? '🎉 Tax Refund Owed to You' : '⚠️ Additional Tax You Owe'}</div>
+            <div class="refund-amount" style="color:${isRefund ? 'var(--green)' : '#ff6b7a'}">${rm(Math.abs(pcbDiff))}</div>
+            <div class="small-note">${isRefund ? 'You overpaid through monthly deductions! File your e-Filing to claim this back.' : 'Your monthly deductions were not enough to cover your tax bill.'}</div>
+        </div>`;
+    }
+
+    html += `<table class="slab-table" style="margin-top:20px">
+      <thead><tr><th>Tax Slab (RM)</th><th>Rate</th><th>Tax Amount</th></tr></thead><tbody>`;
+    
+    breakdown.forEach(b => {
+        const isActive = chargeable > b.lower && chargeable <= b.upper;
+        html += `<tr class="${isActive ? 'active-row' : ''}">
+            <td>${b.label}</td><td>${(b.rate*100)}%</td><td class="tax-cell">${rm(b.tax)}</td>
+        </tr>`;
+    });
+    
+    html += `</tbody></table></div>`;
+    html += renderDisclaimer();
+    document.getElementById('resultsContainer').innerHTML = html;
+}
+
+function renderNonResident(income, pcb) {
+    let finalTax = income * 0.30;
+    let net = income - finalTax;
+    let netMonthly = net / 12;
+    let pcbDiff = pcb - finalTax;
+
+    // Simulate what they WOULD save if they hit 182 days
+    const resChargeable = Math.max(0, income - 9000);
+    const resTaxInfo = calcProgressiveTax(resChargeable);
+    const resFinal = Math.max(0, resTaxInfo.tax - (resChargeable <= 35000 ? 400 : 0));
+    const potentialSavings = finalTax - resFinal;
+
+    let html = `
+    <div class="card">
+      <div class="result-header">
+        <div class="result-title" style="color:#ff6b7a">Your Non-Resident Summary</div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card"><div class="metric-label">Annual Gross Income</div><div class="metric-value">${rm(income)}</div><div class="metric-sub">Calculated from Monthly</div></div>
+        <div class="metric-card"><div class="metric-label">Chargeable Income</div><div class="metric-value gold">${rm(income)}</div><div class="metric-sub">No Reliefs Allowed</div></div>
+        <div class="metric-card highlight"><div class="metric-label">Total Tax Due (30%)</div><div class="metric-value red">${rm(finalTax)}</div><div class="metric-sub">Annual Estimate</div></div>
+        <div class="metric-card highlight"><div class="metric-label">Post-Tax Take Home</div><div class="metric-value green">${rm(netMonthly)}</div><div class="metric-sub">Monthly Estimate</div></div>
+      </div>`;
+
+    if (pcb > 0) {
+        let isRefund = pcbDiff >= 0;
+        html += `<div class="refund-box ${isRefund ? 'refund' : 'due'}">
+            <div style="font-weight:bold; font-size:14px;">${isRefund ? '🎉 Tax Refund Owed to You' : '⚠️ Additional Tax You Owe'}</div>
+            <div class="refund-amount" style="color:${isRefund ? 'var(--green)' : '#ff6b7a'}">${rm(Math.abs(pcbDiff))}</div>
+        </div>`;
+    }
+
+    if (potentialSavings > 0) {
+        html += `<div class="info-box" style="margin-top:20px; border-color:var(--gold);">
+            <strong>💡 Expat Pro Tip: Stay Until 182 Days!</strong><br>
+            If you adjust your dates to stay at least 182 days in Malaysia, you become a Tax Resident. You would only pay ${rm(resFinal)} in taxes annually, saving you <strong>${rm(potentialSavings)}</strong>!
+        </div>`;
+    }
+
+    html += `</div>`;
+    html += renderDisclaimer();
+    document.getElementById('resultsContainer').innerHTML = html;
+}
+
+function renderDisclaimer() {
+    return `<div class="disclaimer">
+        <strong>⚠️ Disclaimer</strong>
+        Calculations are based on official LHDN progressive rates for YA 2024. The 182-day rule (Section 7(1)(b) ITA 1967) is used to estimate residency. This tool is for informational purposes only; please consult a licensed tax professional or the LHDN portal for official filing.
+    </div>`;
+}
+
+function rm(v) { return 'RM ' + (v || 0).toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+</script>
 </body>
 </html>
