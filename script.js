@@ -1,40 +1,70 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2869
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww29200\viewh17740\viewkind0
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+function calculateTax() {
+    const income = parseFloat(document.getElementById('income').value);
+    const days = parseInt(document.getElementById('days').value);
+    
+    if (isNaN(income) || isNaN(days)) {
+        alert("Please enter valid numbers for income and days.");
+        return;
+    }
 
-\f0\fs24 \cf0 function calculateTax() \{\
-    const income = parseFloat(document.getElementById('income').value) || 0;\
-    const daysInMalaysia = parseInt(document.getElementById('days').value) || 0;\
-    \
-    let taxPayable = 0;\
-    let residencyStatus = "Non-Resident";\
-    let message = "";\
-\
-    // 1. Determine Residency (182 days rule)\
-    if (daysInMalaysia >= 182) \{\
-        residencyStatus = "Resident";\
-        \
-        // 2. Resident Calculation: Chargeable Income = Income - Personal Relief (9000)\
-        let chargeableIncome = Math.max(0, income - 9000);\
-        \
-        // Progressive Slabs Logic\
-        if (chargeableIncome <= 5000) taxPayable = 0;\
-        else if (chargeableIncome <= 20000) taxPayable = (chargeableIncome - 5000) * 0.01;\
-        else if (chargeableIncome <= 35000) taxPayable = 150 + (chargeableIncome - 20000) * 0.03;\
-        else if (chargeableIncome <= 50000) taxPayable = 600 + (chargeableIncome - 35000) * 0.06;\
-        else if (chargeableIncome <= 70000) taxPayable = 1500 + (chargeableIncome - 50000) * 0.11;\
-        else if (chargeableIncome <= 100000) taxPayable = 3700 + (chargeableIncome - 70000) * 0.19;\
-        else taxPayable = 9400 + (chargeableIncome - 100000) * 0.25;\
-\
-        // 3. Apply RM 400 Rebate if income <= 35000\
-        if (chargeableIncome <= 35000 && taxPayable > 0) \{\
-            taxPayable = Math.max(0, taxPayable - 400);\
-            message = "Applied RM 400 low-income rebate.";\
-        \}\
-    \} else \{\
+    let tax = 0;
+    let rebate = 0;
+    let status = "Non-Resident";
+
+    // Check Residency: 182-day threshold rule
+    if (days >= 182) {
+        status = "Tax Resident";
+        
+        // Apply automatic RM 9,000 personal deduction
+        let chargeableIncome = income - 9000;
+        if (chargeableIncome < 0) chargeableIncome = 0;
+
+        // Progressive Tax Slabs calculation
+        if (chargeableIncome <= 5000) {
+            tax = 0;
+        } else if (chargeableIncome <= 20000) {
+            tax = (chargeableIncome - 5000) * 0.01;
+        } else if (chargeableIncome <= 35000) {
+            tax = 150 + ((chargeableIncome - 20000) * 0.03);
+        } else if (chargeableIncome <= 50000) {
+            tax = 600 + ((chargeableIncome - 35000) * 0.06);
+        } else if (chargeableIncome <= 70000) {
+            tax = 1500 + ((chargeableIncome - 50000) * 0.11);
+        } else if (chargeableIncome <= 100000) {
+            tax = 3700 + ((chargeableIncome - 70000) * 0.19);
+        } else if (chargeableIncome <= 400000) {
+            tax = 9400 + ((chargeableIncome - 100000) * 0.25);
+        } else {
+            tax = 84400 + ((chargeableIncome - 400000) * 0.30); // 30% max rate assumption beyond 400k slab
+        }
+
+        // Apply RM 400 Rebate if Chargeable Income is <= RM 35,000
+        if (chargeableIncome <= 35000) {
+            rebate = 400;
+            tax = tax - rebate;
+            if (tax < 0) tax = 0; 
+        }
+
+    } else {
+        // Non-Resident flat 30% rate
+        tax = income * 0.30;
+    }
+
+    // Calculate post-tax income
+    const postTaxIncome = income - tax;
+
+    // Display Results
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.style.display = "block";
+    resultsDiv.innerHTML = `
+        <h3>Calculation Results</h3>
+        <p><strong>Residency Status:</strong> ${status}</p>
+        <p><strong>Estimated Tax Payable:</strong> RM ${tax.toLocaleString('en-MY', {minimumFractionDigits: 2})}</p>
+        <p><strong>Rebate Applied:</strong> RM ${rebate.toLocaleString('en-MY', {minimumFractionDigits: 2})}</p>
+        <hr>
+        <p><strong>Estimated Post-Tax Income:</strong> RM ${postTaxIncome.toLocaleString('en-MY', {minimumFractionDigits: 2})}</p>
+    `;
+}    \} else \{\
         // Non-Resident: Flat 30%\
         taxPayable = income * 0.30;\
         message = "Non-residents are taxed at a flat 30% rate with no reliefs.";\
