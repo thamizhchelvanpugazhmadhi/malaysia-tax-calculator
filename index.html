@@ -81,15 +81,18 @@ a{color:var(--gold);text-decoration:none}
 .metric-value.gold{color:var(--gold)}
 .metric-sub{font-size:11px;color:var(--muted);margin-top:3px}
 
+/* ── Cash Flow Timeline ── */
+.timeline-box{background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom: 12px; display:flex; justify-content:space-between; align-items:center;}
+.timeline-title{font-size:14px; font-weight:700; color:var(--text);}
+.timeline-desc{font-size:12px; color:var(--muted);}
+.timeline-value{font-size:18px; font-weight:800;}
+
 /* ── Slab Table & PCB ── */
 .slab-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
 .slab-table th{text-align:left;padding:8px 10px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.8px;border-bottom:1px solid var(--border)}
 .slab-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.05)}
 .slab-table tr.active-row td{background:rgba(26,86,219,.12);color:var(--text);font-weight:600; border-left:3px solid var(--blue)}
 .tax-cell{color:var(--gold);font-weight:700}
-.pcb-bar{background:var(--surface2);border-radius:8px;padding:14px 16px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}
-.pcb-label{font-size:12px;color:var(--muted)}
-.pcb-value{font-size:15px;font-weight:700}
 .refund-box{border-radius:var(--radius);padding:16px 20px;text-align:center;margin-top:12px}
 .refund-box.refund{background:#062420;border:1px solid #1a5c45}
 .refund-box.due{background:var(--danger-bg);border:1px solid #6a1a1a}
@@ -145,7 +148,7 @@ a{color:var(--gold);text-decoration:none}
   <div class="form-group">
     <div class="form-label"><span>Total Tax Withheld / PCB Paid This Year (Optional)</span></div>
     <div class="input-prefix"><span class="prefix-label">RM</span><input type="number" id="pcbPaid" placeholder="e.g. 15000" min="0" oninput="calculateApp()"></div>
-    <div class="small-note">Enter your total PCB/MTD paid to see if you are owed a refund. Expats often overpay at 30% before hitting 182 days.</div>
+    <div class="small-note">Enter your total PCB/MTD paid to see if you are owed a refund.</div>
   </div>
 </div>
 
@@ -211,7 +214,7 @@ function calculateApp() {
         detail.textContent = 'Under 182 days. A flat 30% tax rate applies to all income. No personal reliefs.';
     }
 
-    // 2. Calculate Tax with Monthly Income Logic
+    // 2. Calculate Tax
     const monthlyIncome = parseFloat(document.getElementById('grossIncome').value) || 0;
     const annualIncome = monthlyIncome * 12; // Convert to annual for slab comparison
     const pcbAnnual = parseFloat(document.getElementById('pcbPaid').value) || 0; 
@@ -221,11 +224,10 @@ function calculateApp() {
         return;
     }
 
-    // Pass the calculated annualIncome into our rendering functions
     if (isResident) {
-        renderResident(annualIncome, pcbAnnual);
+        renderResident(annualIncome, monthlyIncome, pcbAnnual);
     } else {
-        renderNonResident(annualIncome, pcbAnnual);
+        renderNonResident(annualIncome, monthlyIncome, pcbAnnual);
     }
 }
 
@@ -244,16 +246,25 @@ function calcProgressiveTax(ci) {
     return {tax, breakdown};
 }
 
-function renderResident(income, pcb) {
+function renderResident(annualIncome, monthlyIncome, pcb) {
     const relief = 9000;
-    const chargeable = Math.max(0, income - relief);
+    const chargeable = Math.max(0, annualIncome - relief);
     const {tax, breakdown} = calcProgressiveTax(chargeable);
     
     let rebate = chargeable <= 35000 ? 400 : 0;
     let finalTax = Math.max(0, tax - rebate);
-    let net = income - finalTax;
-    let netMonthly = net / 12;
+    let netAnnual = annualIncome - finalTax;
+    let netMonthlyResident = netAnnual / 12;
     let pcbDiff = pcb - finalTax;
+
+    // Phase 1: Non-Resident (First 6 months / 182 days)
+    let nonResidentTaxMonthly = monthlyIncome * 0.30;
+    let netMonthlyNonResident = monthlyIncome - nonResidentTaxMonthly;
+
+    // Estimated massive refund from the first 6 months
+    let residentTaxMonthly = finalTax / 12;
+    let overpaidPerMonth = nonResidentTaxMonthly - residentTaxMonthly;
+    let estimatedRefundFromFirst6Months = Math.max(0, overpaidPerMonth * 6);
 
     let html = `
     <div class="card">
@@ -261,18 +272,43 @@ function renderResident(income, pcb) {
         <div class="result-title">Your Resident Tax Summary</div>
       </div>
       <div class="metrics-grid">
-        <div class="metric-card"><div class="metric-label">Annual Gross Income</div><div class="metric-value">${rm(income)}</div><div class="metric-sub">Calculated from Monthly</div></div>
-        <div class="metric-card"><div class="metric-label">Chargeable Income</div><div class="metric-value gold">${rm(chargeable)}</div><div class="metric-sub">After RM9k Relief</div></div>
-        <div class="metric-card highlight"><div class="metric-label">Total Tax Due</div><div class="metric-value red">${rm(finalTax)}</div><div class="metric-sub">Annual Estimate</div></div>
-        <div class="metric-card highlight"><div class="metric-label">Post-Tax Take Home</div><div class="metric-value green">${rm(netMonthly)}</div><div class="metric-sub">Monthly Estimate</div></div>
+        <div class="metric-card"><div class="metric-label">Annual Gross</div><div class="metric-value">${rm(annualIncome)}</div></div>
+        <div class="metric-card"><div class="metric-label">Chargeable Income</div><div class="metric-value gold">${rm(chargeable)}</div></div>
+        <div class="metric-card highlight"><div class="metric-label">Total Annual Tax</div><div class="metric-value red">${rm(finalTax)}</div></div>
+        <div class="metric-card highlight"><div class="metric-label">Average Net Monthly</div><div class="metric-value green">${rm(netMonthlyResident)}</div></div>
       </div>`;
+
+    // NEW TIMELINE SECTION
+    html += `
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">🗓️ Year 1 Expat Cash Flow (The 182-Day Flip)</h3>
+    <p style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">Employers legally must deduct 30% until you pass the 182-day mark. Here is how your actual take-home pay changes:</p>
+    
+    <div class="timeline-box">
+        <div>
+            <div class="timeline-title">Phase 1: Months 1 to 6 (< 182 Days)</div>
+            <div class="timeline-desc">Taxed at flat 30%. You are officially overpaying.</div>
+        </div>
+        <div class="timeline-value" style="color: #ff6b7a;">${rm(netMonthlyNonResident)} /mo</div>
+    </div>
+
+    <div class="timeline-box" style="border-color: var(--green);">
+        <div>
+            <div class="timeline-title" style="color: var(--green);">Phase 2: Months 7 to 12 (> 182 Days)</div>
+            <div class="timeline-desc">HR adjusts you to the lower progressive rate!</div>
+        </div>
+        <div class="timeline-value" style="color: var(--green);">${rm(netMonthlyResident)} /mo</div>
+    </div>
+
+    <div class="info-box" style="border-color: var(--gold); margin-top: 16px;">
+        <strong>💰 Your Built-In Bonus (Tax Refund)</strong><br>
+        Because you paid 30% for the first ~6 months, you overpaid LHDN by roughly <strong>${rm(estimatedRefundFromFirst6Months)}</strong>. When you file your taxes next year via e-Filing, LHDN will wire this amount directly to your Malaysian bank account!
+    </div>`;
 
     if (pcb > 0) {
         let isRefund = pcbDiff >= 0;
-        html += `<div class="refund-box ${isRefund ? 'refund' : 'due'}">
-            <div style="font-weight:bold; font-size:14px;">${isRefund ? '🎉 Tax Refund Owed to You' : '⚠️ Additional Tax You Owe'}</div>
+        html += `<div class="refund-box ${isRefund ? 'refund' : 'due'}" style="margin-top: 24px;">
+            <div style="font-weight:bold; font-size:14px;">${isRefund ? '🎉 Tax Refund based on PCB entered' : '⚠️ Additional Tax You Owe'}</div>
             <div class="refund-amount" style="color:${isRefund ? 'var(--green)' : '#ff6b7a'}">${rm(Math.abs(pcbDiff))}</div>
-            <div class="small-note">${isRefund ? 'You overpaid through monthly deductions! File your e-Filing to claim this back.' : 'Your monthly deductions were not enough to cover your tax bill.'}</div>
         </div>`;
     }
 
@@ -291,14 +327,13 @@ function renderResident(income, pcb) {
     document.getElementById('resultsContainer').innerHTML = html;
 }
 
-function renderNonResident(income, pcb) {
-    let finalTax = income * 0.30;
-    let net = income - finalTax;
-    let netMonthly = net / 12;
+function renderNonResident(annualIncome, monthlyIncome, pcb) {
+    let finalTax = annualIncome * 0.30;
+    let netMonthly = monthlyIncome - (monthlyIncome * 0.30);
     let pcbDiff = pcb - finalTax;
 
     // Simulate what they WOULD save if they hit 182 days
-    const resChargeable = Math.max(0, income - 9000);
+    const resChargeable = Math.max(0, annualIncome - 9000);
     const resTaxInfo = calcProgressiveTax(resChargeable);
     const resFinal = Math.max(0, resTaxInfo.tax - (resChargeable <= 35000 ? 400 : 0));
     const potentialSavings = finalTax - resFinal;
@@ -309,10 +344,10 @@ function renderNonResident(income, pcb) {
         <div class="result-title" style="color:#ff6b7a">Your Non-Resident Summary</div>
       </div>
       <div class="metrics-grid">
-        <div class="metric-card"><div class="metric-label">Annual Gross Income</div><div class="metric-value">${rm(income)}</div><div class="metric-sub">Calculated from Monthly</div></div>
-        <div class="metric-card"><div class="metric-label">Chargeable Income</div><div class="metric-value gold">${rm(income)}</div><div class="metric-sub">No Reliefs Allowed</div></div>
-        <div class="metric-card highlight"><div class="metric-label">Total Tax Due (30%)</div><div class="metric-value red">${rm(finalTax)}</div><div class="metric-sub">Annual Estimate</div></div>
-        <div class="metric-card highlight"><div class="metric-label">Post-Tax Take Home</div><div class="metric-value green">${rm(netMonthly)}</div><div class="metric-sub">Monthly Estimate</div></div>
+        <div class="metric-card"><div class="metric-label">Annual Gross</div><div class="metric-value">${rm(annualIncome)}</div></div>
+        <div class="metric-card"><div class="metric-label">Chargeable Income</div><div class="metric-value gold">${rm(annualIncome)}</div></div>
+        <div class="metric-card highlight"><div class="metric-label">Total Annual Tax</div><div class="metric-value red">${rm(finalTax)}</div></div>
+        <div class="metric-card highlight"><div class="metric-label">Net Monthly Take-Home</div><div class="metric-value green">${rm(netMonthly)}</div></div>
       </div>`;
 
     if (pcb > 0) {
